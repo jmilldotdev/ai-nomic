@@ -1,3 +1,4 @@
+import random
 import uuid
 import aiohttp
 import discord
@@ -6,14 +7,65 @@ from discord import Webhook
 
 from ai_nomic import config
 from ai_nomic.eden import act_as_agent, fetch_knowledge, interrogate_knowledge
-from ai_nomic.models import AgenticPlayer
+from ai_nomic.models import Player
 
 
 class AINomicCog(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
         self.session_id = str(uuid.uuid4())
-        self.agent_players = {}
+        self.players = {}
+
+    @commands.slash_command(
+        name="register",
+        description="Create a new player",
+        guild_ids=config.ALLOWED_GUILDS,
+    )
+    async def register(
+        self,
+        ctx: commands.Context,
+    ):
+        try:
+            name = str(ctx.author)
+            player = Player(name=name)
+            self.players[player.name] = player
+            await ctx.respond(f"Created player {player.name}")
+        except Exception as e:
+            await ctx.respond(f"Oh no! Something went wrong: {e}")
+
+    @commands.slash_command(
+        name="remove_player",
+        description="Remove a player",
+        guild_ids=config.ALLOWED_GUILDS,
+    )
+    async def remove_player(
+        self,
+        ctx: commands.Context,
+        name: discord.Option(str, description="The name of the player"),
+    ) -> None:
+        player = self.players.get(name)
+        if not player:
+            await ctx.send(f"Player {name} not found")
+            return
+        del self.players[player.name]
+        await ctx.respond(f"Removed player {player.name}")
+
+    @commands.slash_command(
+        name="score",
+        description="Display the score of all players",
+        guild_ids=config.ALLOWED_GUILDS,
+    )
+    async def score(self, ctx: commands.Context) -> None:
+        try:
+            if len(self.players) == 0:
+                await ctx.respond("No players registered yet")
+                return
+            score = "\n".join(
+                [f"{player.name}: {player.score}" for player in self.players.values()]
+            )
+            await ctx.respond(score)
+        except Exception as e:
+            await ctx.respond(f"Oh no! Something went wrong: {e}")
 
     @commands.slash_command(
         name="rules",
@@ -48,50 +100,33 @@ class AINomicCog(commands.Cog):
             await ctx.respond(f"Oh no! Something went wrong: {e}")
 
     @commands.slash_command(
-        name="create_agent",
+        name="add_agent_player",
         description="Create a new agent player",
         guild_ids=config.ALLOWED_GUILDS,
     )
-    async def create_agent_player(
+    async def add_agent_player(
         self,
         ctx: commands.Context,
         name: discord.Option(str, description="The name of the agent player"),
         identity: discord.Option(str, description="The identity of the agent player"),
     ) -> None:
-        agent = AgenticPlayer(name=name, identity=identity)
-        self.agent_players[agent.name] = agent
+        agent = Player(name=name, identity=identity, agent=True)
+        self.players[agent.name] = agent
         await ctx.respond(f"Created agent player {agent.name}")
 
     @commands.slash_command(
-        name="remove_agent",
-        description="Remove an agent player",
-        guild_ids=config.ALLOWED_GUILDS,
-    )
-    async def remove_agent_player(
-        self,
-        ctx: commands.Context,
-        name: discord.Option(str, description="The name of the agent player"),
-    ) -> None:
-        agent = self.agent_players.get(name)
-        if not agent:
-            await ctx.send(f"Agent player {name} not found")
-            return
-        del self.agent_players[agent.name]
-        await ctx.respond(f"Removed agent player {agent.name}")
-
-    @commands.slash_command(
-        name="act_as_agent",
+        name="agent_propose",
         description="Act as an agent player",
         guild_ids=config.ALLOWED_GUILDS,
     )
-    async def act_as_agent_player(
+    async def agent_propose(
         self,
         ctx: commands.Context,
         name: discord.Option(str, description="The name of the agent player"),
     ) -> None:
         await ctx.defer(ephemeral=True)
         try:
-            agent = self.agent_players.get(name)
+            agent = self.players.get(name)
             if not agent:
                 await ctx.send(f"Agent player {name} not found")
                 return
@@ -100,6 +135,50 @@ class AINomicCog(commands.Cog):
                 webhook = Webhook.from_url(config.DISCORD_WEBHOOK_URL, session=session)
                 await webhook.send(message, username=agent.name)
             await ctx.respond(f"acted as agent player {name}")
+        except Exception as e:
+            await ctx.respond(f"Oh no! Something went wrong: {e}")
+
+    @commands.slash_command(
+        name="roll_dice",
+        description="Roll dice. Optionally specify the number of dice and the number of sides",
+        guild_ids=config.ALLOWED_GUILDS,
+    )
+    async def roll_dice(
+        self,
+        ctx: commands.Context,
+        num_dice: discord.Option(
+            int, description="The number of dice to roll", default=1
+        ),
+        num_sides: discord.Option(
+            int, description="The number of sides on each die", default=6
+        ),
+    ) -> None:
+        try:
+            dice = [random.randint(1, num_sides) for _ in range(num_dice)]
+            await ctx.respond(f"Rolled {num_dice}d{num_sides}: {dice}")
+        except Exception as e:
+            await ctx.respond(f"Oh no! Something went wrong: {e}")
+
+    @commands.slash_command(
+        name="update_score",
+        description="Update the score of a player",
+        guild_ids=config.ALLOWED_GUILDS,
+    )
+    async def update_score(
+        self,
+        ctx: commands.Context,
+        name: discord.Option(str, description="The name of the player"),
+        change: discord.Option(int, description="The the amount to change the score"),
+    ) -> None:
+        try:
+            player = self.players.get(name)
+            if not player:
+                await ctx.send(f"Player {name} not found")
+                return
+            player.score += change
+            await ctx.respond(
+                f"Updated score of player {player.name} to {player.score}"
+            )
         except Exception as e:
             await ctx.respond(f"Oh no! Something went wrong: {e}")
 

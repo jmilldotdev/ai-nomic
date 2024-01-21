@@ -1,14 +1,10 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
-class HumanPlayer:
+class Player:
     name: str
-    score: int = 0
-
-
-@dataclass
-class AgenticPlayer:
-    name: str
-    identity: str
+    agent: bool = False
+    identity: Optional[str] = None
     score: int = 0
