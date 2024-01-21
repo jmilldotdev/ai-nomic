@@ -27,6 +27,8 @@ This bot functions as a player/gamestate manager, rules governor, and AI player 
 
 `/agent_propose` will take a turn to make a proposal as an AI player.
 
+`/agent_vote` will vote on a proposal as an AI player.
+
 ### Player Commands
 
 `/register` will register you for the game.

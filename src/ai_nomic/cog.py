@@ -6,7 +6,12 @@ from discord.ext import commands
 from discord import Webhook
 
 from ai_nomic import config
-from ai_nomic.eden import act_as_agent, fetch_knowledge, interrogate_knowledge
+from ai_nomic.eden import (
+    act_as_agent,
+    fetch_knowledge,
+    interrogate_knowledge,
+    vote_as_agent,
+)
 from ai_nomic.models import Player
 
 
@@ -112,7 +117,7 @@ class AINomicCog(commands.Cog):
     ) -> None:
         agent = Player(name=name, identity=identity, agent=True)
         self.players[agent.name] = agent
-        await ctx.respond(f"Created agent player {agent.name}")
+        await ctx.respond(f"Created agent player {agent.name}\n\n'{agent.identity}'")
 
     @commands.slash_command(
         name="agent_propose",
@@ -135,6 +140,31 @@ class AINomicCog(commands.Cog):
                 webhook = Webhook.from_url(config.DISCORD_WEBHOOK_URL, session=session)
                 await webhook.send(message, username=agent.name)
             await ctx.respond(f"acted as agent player {name}")
+        except Exception as e:
+            await ctx.respond(f"Oh no! Something went wrong: {e}")
+
+    @commands.slash_command(
+        name="agent_vote",
+        description="Vote as an agent player",
+        guild_ids=config.ALLOWED_GUILDS,
+    )
+    async def agent_vote(
+        self,
+        ctx: commands.Context,
+        name: discord.Option(str, description="The name of the agent player"),
+        proposal: discord.Option(str, description="The proposal to vote on"),
+    ) -> None:
+        await ctx.defer(ephemeral=True)
+        try:
+            agent = self.players.get(name)
+            if not agent:
+                await ctx.send(f"Agent player {name} not found")
+                return
+            message = vote_as_agent(agent.name, agent.identity, proposal)
+            async with aiohttp.ClientSession() as session:
+                webhook = Webhook.from_url(config.DISCORD_WEBHOOK_URL, session=session)
+                await webhook.send(message, username=agent.name)
+            await ctx.respond(f"voted as agent player {name}")
         except Exception as e:
             await ctx.respond(f"Oh no! Something went wrong: {e}")
 
