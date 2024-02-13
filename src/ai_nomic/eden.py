@@ -2,6 +2,7 @@ from eden_sdk.EdenClient import EdenClient
 import requests
 
 from ai_nomic import config
+from ai_nomic.hedgedoc import get_doc_contents
 from ai_nomic.util import chunk_string
 
 
@@ -18,21 +19,39 @@ def fetch_knowledge():
     return knowledge_chunks
 
 
-def interrogate_knowledge(message, session_id):
-    r = requests.post(
-        config.EDEN_API_URL + "/characters/interact",
-        json={
-            "character_id": config.EDEN_CHARACTER_ID,
-            "session_id": session_id,
-            "message": message,
-        },
-        headers={
-            "X-Api-Key": config.EDEN_API_KEY,
-            "X-Api-Secret": config.EDEN_API_SECRET,
-        },
+def interrogate_knowledge(knowledge: str, message: str) -> str:
+    # r = requests.post(
+    #     config.EDEN_API_URL + "/characters/interact",
+    #     json={
+    #         "character_id": config.EDEN_CHARACTER_ID,
+    #         "session_id": session_id,
+    #         "message": message,
+    #     },
+    #     headers={
+    #         "X-Api-Key": config.EDEN_API_KEY,
+    #         "X-Api-Secret": config.EDEN_API_SECRET,
+    #     },
+    # )
+
+    eden = EdenClient(
+        api_url=config.EDEN_API_URL,
+        api_key=config.EDEN_API_KEY,
+        api_secret=config.EDEN_API_SECRET,
     )
-    json = r.json()
-    return json["message"]
+
+    character = eden.characters.get(config.EDEN_CHARACTER_ID)
+    name = character["character"]["name"]
+    logos_data = character["character"]["logosData"]
+
+    response = eden.characters.test(
+        name=name,
+        identity=logos_data["identity"],
+        knowledge=knowledge,
+        knowledge_summary=logos_data["knowledgeSummary"],
+        message=message,
+    )
+
+    return response["message"]
 
 
 def act_as_agent(name: str, identity: str) -> None:

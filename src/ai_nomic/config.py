@@ -7,6 +7,7 @@ EDEN_API_KEY = os.getenv("EDEN_API_KEY")
 EDEN_API_SECRET = os.getenv("EDEN_API_SECRET")
 EDEN_CHARACTER_ID = os.getenv("EDEN_CHARACTER_ID")
 EDEN_API_URL = os.getenv("EDEN_API_URL") or "https://api.eden.art"
+HEDGEDOC_API_URL = os.getenv("HEDGEDOC_API_URL") or "https://demo.hedgedoc.org"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")

@@ -8,10 +8,10 @@ from discord import Webhook
 from ai_nomic import config
 from ai_nomic.eden import (
     act_as_agent,
-    fetch_knowledge,
     interrogate_knowledge,
     vote_as_agent,
 )
+from ai_nomic.hedgedoc import get_doc_contents, new_hedgedoc
 from ai_nomic.models import Player
 
 
@@ -22,11 +22,25 @@ class AINomicCog(commands.Cog):
         self.players = {}
 
     @commands.slash_command(
-        name="register",
+        name="initialize",
+        description="Start a new game",
+        guild_ids=config.ALLOWED_GUILDS,
+    )
+    async def initialize(self, ctx: commands.Context) -> None:
+        try:
+            self.players = {}
+            if not self.bot.hedgedoc_url:
+                self.bot.hedgedoc_url = new_hedgedoc()
+            await ctx.respond(f"Initialized a new game. Rules can be found at {self.bot.hedgedoc_url}")
+        except Exception as e:
+            await ctx.respond(f"Oh no! Something went wrong: {e}")
+
+    @commands.slash_command(
+        name="add_player",
         description="Create a new player",
         guild_ids=config.ALLOWED_GUILDS,
     )
-    async def register(
+    async def add_player(
         self,
         ctx: commands.Context,
     ):
@@ -79,10 +93,10 @@ class AINomicCog(commands.Cog):
     )
     async def rules(self, ctx: commands.Context) -> None:
         try:
-            await ctx.defer(ephemeral=True)
-            rules_chunks = fetch_knowledge()
-            for chunk in rules_chunks:
-                await ctx.send(chunk)
+            if not self.bot.hedgedoc_url:
+                await ctx.respond("No game initialized yet")
+                return
+            await ctx.respond(f"Rules can be found at {self.bot.hedgedoc_url}")
         except Exception as e:
             await ctx.send(f"Oh no! Something went wrong: {e}")
 
@@ -98,7 +112,8 @@ class AINomicCog(commands.Cog):
     ) -> None:
         try:
             await ctx.defer(ephemeral=True)
-            answer = interrogate_knowledge(question, self.session_id)
+            knowledge = get_doc_contents(self.bot.hedgedoc_url)
+            answer = interrogate_knowledge(knowledge, question)
             await ctx.send(f"Inquiry: {question}\n\n{answer}")
             await ctx.respond("Done!")
         except Exception as e:
