@@ -1,8 +1,6 @@
 from eden_sdk.EdenClient import EdenClient
-import requests
 
 from ai_nomic import config
-from ai_nomic.hedgedoc import get_doc_contents
 from ai_nomic.util import chunk_string
 
 
@@ -54,7 +52,7 @@ def interrogate_knowledge(knowledge: str, message: str) -> str:
     return response["message"]
 
 
-def act_as_agent(name: str, identity: str) -> None:
+def act_as_agent(name: str, identity: str, knowledge: str) -> None:
     eden = EdenClient(
         api_url=config.EDEN_API_URL,
         api_key=config.EDEN_API_KEY,
@@ -72,14 +70,14 @@ def act_as_agent(name: str, identity: str) -> None:
     response = eden.characters.test(
         name=name,
         identity=prompt,
-        knowledge=logos_data["knowledge"],
+        knowledge=knowledge,
         knowledge_summary=logos_data["knowledgeSummary"],
         message="It is your turn to act. Use your knowledge of the nomic rules to create a legal proposal according to your agentic goals.",
     )
     return response["message"]
 
 
-def vote_as_agent(name: str, identity: str, proposal: str) -> None:
+def vote_as_agent(name: str, identity: str, proposal: str, knowledge: str) -> None:
     eden = EdenClient(
         api_url=config.EDEN_API_URL,
         api_key=config.EDEN_API_KEY,
@@ -103,7 +101,7 @@ def vote_as_agent(name: str, identity: str, proposal: str) -> None:
     response = eden.characters.test(
         name=name,
         identity=prompt,
-        knowledge=logos_data["knowledge"],
+        knowledge=knowledge,
         knowledge_summary=logos_data["knowledgeSummary"],
         message="It is your turn to act. Use your knowledge of the nomic rules to cast a vote according to your agentic goals.",
     )

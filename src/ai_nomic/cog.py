@@ -150,7 +150,8 @@ class AINomicCog(commands.Cog):
             if not agent:
                 await ctx.send(f"Agent player {name} not found")
                 return
-            message = act_as_agent(agent.name, agent.identity)
+            knowledge = get_doc_contents(self.bot.hedgedoc_url)
+            message = act_as_agent(agent.name, agent.identity, knowledge)
             async with aiohttp.ClientSession() as session:
                 webhook = Webhook.from_url(config.DISCORD_WEBHOOK_URL, session=session)
                 await webhook.send(message, username=agent.name)
@@ -175,7 +176,8 @@ class AINomicCog(commands.Cog):
             if not agent:
                 await ctx.send(f"Agent player {name} not found")
                 return
-            message = vote_as_agent(agent.name, agent.identity, proposal)
+            knowledge = get_doc_contents(self.bot.hedgedoc_url)
+            message = vote_as_agent(agent.name, agent.identity, proposal, knowledge)
             async with aiohttp.ClientSession() as session:
                 webhook = Webhook.from_url(config.DISCORD_WEBHOOK_URL, session=session)
                 await webhook.send(message, username=agent.name)
